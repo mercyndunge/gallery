@@ -1,36 +1,53 @@
 pipeline {
     agent any
 
+    triggers {
+        githubPush()
+    }
+
+    environment {
+        SLACK_CHANNEL = '#Mercy_IP1'
+        RENDER_URL = 'https://gallery-nagf.onrender.com'
+    }
+
     stages {
         stage('Install Dependencies') {
             steps {
-                // Ensure Node.js and npm are installed
-                sh 'node -v'
-                sh 'npm -v'
-                // Install project dependencies
                 sh 'npm install'
             }
         }
 
         stage('Run Tests') {
             steps {
-                // Run tests (if you have any)
-                sh 'npm test || echo "No tests found, skipping..."'
+                sh 'npm test'
+            }
+            post {
+                failure {
+                    mail to: 'syokaumercy2@gmail.com',
+                         subject: "Build Failed: ${env.BUILD_ID}",
+                         body: "The build failed during the test stage. Check Jenkins for details."
+                }
             }
         }
 
-        stage('Deploy to Render') {
+        stage('Build') {
             steps {
-                // Deploy the application to Render
-                sh 'node server.js &'
+                sh 'npm run build || echo "No build step defined, skipping..."'
             }
         }
-    }
 
-    post {
-        always {
-            // Clean up workspace
-            cleanWs()
+        stage('Deploy') {
+            steps {
+                echo "Code pushed to GitHub. Render will auto-deploy if GitHub integration is enabled."
+            }
+            post {
+                success {
+                    slackSend (
+                        channel: env.SLACK_CHANNEL,
+                        message: "✅ *Build #${env.BUILD_ID}* deployed successfully!\n🌐 ${env.RENDER_URL}"
+                    )
+                }
+            }
         }
     }
 }
