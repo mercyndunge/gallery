@@ -1,34 +1,44 @@
-const express = require('express');
+import express from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import upload from './upload.js';
+import { getImages, saveImage } from '../models/images.js';
+
 const router = express.Router();
-let Image = require('../models/images');
 
-router.get('/:id', (req,res)=>{
-    // console.log(req);
-    Image.findById(req.params.id,function(err, image){
-        if (err) console.log(err)
-        // console.log(image);
-        res.render('singleImage', {title: 'Single Image', image:image})
-    } )
-})
+router.get('/', async (req, res) => {
+    try {
+        const images = await getImages();
+        res.render('index', { images: images, msg: req.query.msg });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Error fetching images');
+    }
+});
 
-router.put('/:id', (req,res) =>{
-    console.log(req.params.id)
-    console.log(req.body);
-    Image.findOneAndUpdate({_id:req.params.id},{
-        name:req.body.name
-    },{new: true}, function(err,image ){
-        if (err) console.log(err)
-        res.redirect('/')
-    })
-})
+router.post('/upload', (req, res) => {
+    upload(req, res, async (err) => {
+        if (err) {
+            res.redirect(`/?msg=${err}`);
+        } else {
+            console.log(req.file);
+            if (req.file == undefined) {
+                res.redirect('/?msg=Error: No file selected!');
+            } else {
+                try {
+                    const newImage = {
+                        name: req.file.filename,
+                        size: req.file.size,
+                        path: 'images/' + req.file.filename,
+                    };
+                    await saveImage(newImage);
+                    res.redirect('/?msg=File uploaded successfully');
+                } catch (err) {
+                    console.error(err);
+                    res.status(500).send('Error saving image');
+                }
+            }
+        }
+    });
+});
 
-router.delete('/:id', (req,res) =>{
-    console.log(req.params.id)
-
-    Image.deleteOne({_id: req.params.id}, function(err){
-        if (err) console.log(err)
-        res.redirect('/index')
-    })
-})
-
-module.exports = router
+export default router;

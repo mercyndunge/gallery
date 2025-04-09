@@ -1,16 +1,21 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import { connectToDatabase } from '../db.js';
 
-// create a schema for our database
-var imageSchema = new Schema({
-    name: String,
-    path: String,
-    size: Number,
-    date: {type: Date, default: Date() }
+export async function getImages() {
+    const db = await connectToDatabase();
+    return db.collection('images').find({}).toArray();
+}
 
-});
+export async function getImageById(id) {
+    const db = await connectToDatabase();
+    return db.collection('images').findOne({ _id: id });
+}
 
-// convert the schema into a Model
-let Image = mongoose.model('Image', imageSchema);
+export async function saveImage(imageData) {
+    const db = await connectToDatabase();
+    return db.collection('images').insertOne(imageData);
+}
 
-module.exports = Image;
+export async function deleteImageById(id) {
+    const db = await connectToDatabase();
+    return db.collection('images').deleteOne({ _id: id });
+}
