@@ -11,6 +11,13 @@ pipeline {
     }
 
     stages {
+        stage('Clone Repository') {   // Added new stage to clone code
+            steps {
+                echo "Cloning repository..."   // Added echo message
+                checkout scm
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
